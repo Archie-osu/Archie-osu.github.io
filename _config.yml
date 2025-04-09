@@ -26,8 +26,10 @@ author: Archie
 
 # Build settings
 markdown: kramdown
-theme: minima
-remote_theme: pages-themes/midnight@v0.2.0
+# theme: minima
+remote_theme: jekyll/minima 
+minima:
+  skin: dark
 plugins:
   - jekyll-feed
 
