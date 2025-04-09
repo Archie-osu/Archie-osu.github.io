@@ -16,17 +16,17 @@
 title: Archie's reversing diary
 email:
 description: >- # this means to ignore newlines until "baseurl:"
-    I just do random reverse engineering, hoping to 
-    one day work on kernel development.
+    I just do random reverse engineering.
 
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: Archie_1997
 github_username:  archie-osu
+author: Archie
 
 # Build settings
 markdown: kramdown
-theme: minima
+theme: jekyll-theme-midnight
 plugins:
   - jekyll-feed
 
