@@ -74,11 +74,11 @@ Making ETW call our hook is not that simple - we will first need to access the `
 This pointer chain is stable for all tested versions of Windows, and is unlikely to change in the future. It begins at the undocumented ``nt!EtwpDebuggerData`` global, whose RVA can be found via parsing the PDB of ``ntoskrnl.exe``.
 ```cpp
 PWMI_LOGGER_CONTEXT GetCKCLContext(
-	IN UINT_PTR EtwpDebuggerData
+    IN UINT_PTR EtwpDebuggerData
 )
 {
-	PVOID* debugger_data_silo = *reinterpret_cast<PVOID**>(EtwpDebuggerData + 0x10);
-	return static_cast<PWMI_LOGGER_CONTEXT>(debugger_data_silo[2]);
+    PVOID* debugger_data_silo = *reinterpret_cast<PVOID**>(EtwpDebuggerData + 0x10);
+    return static_cast<PWMI_LOGGER_CONTEXT>(debugger_data_silo[2]);
 }
 ```
 We will also need to configure the logger's target events (internally called ``EnableFlags``). This is done via the ``nt!ZwTraceControl`` function, which is thankfully exported for all drivers to use.
@@ -89,10 +89,10 @@ Already having the ``_WMI_LOGGER_CONTEXT`` structure, extracting the information
 ```
 kd> dt _WMI_LOGGER_CONTEXT poi(poi(EtwpDebuggerData+0x10)+0x10)
 nt!_WMI_LOGGER_CONTEXT
-	...
-	+0x088 LoggerName       : _UNICODE_STRING "Circular Kernel Context Logger"
-	...
-	+0x114 InstanceGuid     : _GUID {54dea73a-ed1f-42a4-af71-3e63d056f174}
+    ...
+    +0x088 LoggerName       : _UNICODE_STRING "Circular Kernel Context Logger"
+    ...
+    +0x114 InstanceGuid     : _GUID {54dea73a-ed1f-42a4-af71-3e63d056f174}
 ```
 Upon configuring the logger and starting it, we're ready to roll.
 ## Part 3: Hooking context switches
@@ -120,45 +120,45 @@ Looking at the code, we can figure out that ``rbx`` will be at a constant offset
 // We loop until stack_limit - 0x28 to prevent OOB access when checking the previous thread.
 for (ULONG_PTR iterator = rsp; iterator < (stack_limit - 0x28); iterator += sizeof(PKTHREAD))
 {
-	PKTHREAD thread_at_iterator = *reinterpret_cast<PKTHREAD*>(iterator);
+    PKTHREAD thread_at_iterator = *reinterpret_cast<PKTHREAD*>(iterator);
 
-	// If we found our own thread's pointer on the stack
-	if (thread_at_iterator == current_thread)
-	{
-		// Look at the thread at the target offset
-		PKTHREAD possible_prev_thread = *reinterpret_cast<PKTHREAD*>(iterator + 0x28);
-		PDISPATCHER_HEADER possible_dispatcher_header = reinterpret_cast<PDISPATCHER_HEADER>(possible_prev_thread) - 1;
+    // If we found our own thread's pointer on the stack
+    if (thread_at_iterator == current_thread)
+    {
+        // Look at the thread at the target offset
+        PKTHREAD possible_prev_thread = *reinterpret_cast<PKTHREAD*>(iterator + 0x28);
+        PDISPATCHER_HEADER possible_dispatcher_header = reinterpret_cast<PDISPATCHER_HEADER>(possible_prev_thread) - 1;
 
-		const ULONG_PTR possible_prev_thread_raw = *reinterpret_cast<ULONG_PTR*>(iterator + 0x28);
-		// Threads are not stack-allocated.
-		if (possible_prev_thread_raw >= stack_base && possible_prev_thread_raw <= stack_limit)
-			continue;
+        const ULONG_PTR possible_prev_thread_raw = *reinterpret_cast<ULONG_PTR*>(iterator + 0x28);
+        // Threads are not stack-allocated.
+        if (possible_prev_thread_raw >= stack_base && possible_prev_thread_raw <= stack_limit)
+            continue;
 
-		// Threads are not in userspace.
-		if (possible_prev_thread < MmSystemRangeStart)
-			continue;
+        // Threads are not in userspace.
+        if (possible_prev_thread < MmSystemRangeStart)
+            continue;
 
-		// Threads have accessible memory.
-		if (!MmIsAddressValid(possible_prev_thread) || !MmIsAddressValid(possible_dispatcher_header))
-			continue;
+        // Threads have accessible memory.
+        if (!MmIsAddressValid(possible_prev_thread) || !MmIsAddressValid(possible_dispatcher_header))
+            continue;
 
-		// Reference the thread to check the object type.
-		NTSTATUS status = ObReferenceObjectByPointer(
-			possible_prev_thread,
-			0,
-			*PsThreadType,
-			KernelMode
-		);
+        // Reference the thread to check the object type.
+        NTSTATUS status = ObReferenceObjectByPointer(
+            possible_prev_thread,
+            0,
+            *PsThreadType,
+            KernelMode
+        );
 
-		// If the function fails, we can be sure that the address is not one of a thread.
-		if (!NT_SUCCESS(status))
-			continue;
+        // If the function fails, we can be sure that the address is not one of a thread.
+        if (!NT_SUCCESS(status))
+            continue;
 
-		// Dereference the thread, and store it.
-		ObfDereferenceObject(possible_prev_thread);
-		previous_thread = possible_prev_thread;
-		break;
-	}
+        // Dereference the thread, and store it.
+        ObfDereferenceObject(possible_prev_thread);
+        previous_thread = possible_prev_thread;
+        break;
+    }
 }
 ```
 ## Part 4: Usage & Detection
