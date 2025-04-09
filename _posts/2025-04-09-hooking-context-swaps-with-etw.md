@@ -5,7 +5,6 @@ date:   2025-04-09 17:44:00 +0200
 categories: etw hooking
 ---
 
-# Intercepting context swaps with ETW
 Event Tracing for Windows (ETW) is a kernel mechanism designed to log certain activity happening in the system. Despite its seemingly innocuous description, ETW can be a valuable source of information and a very interesting hook point for both anti-cheats and other drivers.
 
 ## Part 1: Finding the hook point
