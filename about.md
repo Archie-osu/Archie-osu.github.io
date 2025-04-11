@@ -4,8 +4,6 @@ title: About
 permalink: /about/
 ---
 
-I just wanted to write about my RE escapades :3
-This site uses the base Jekyll theme, because I don't know how stuff works.
-Thanks to Sam Tulach for telling me to use it.
+My stories from reverse-engineering random things.
 
-[jekyll-organization]: https://github.com/jekyll
+If you want to reach out, DM me on Discord: @archie_uwu

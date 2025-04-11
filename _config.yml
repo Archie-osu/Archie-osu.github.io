@@ -30,6 +30,14 @@ markdown: kramdown
 remote_theme: jekyll/minima 
 minima:
   skin: dark
+  social_links:
+    - title: GitHub
+      icon: github
+      url: "https://github.com/Archie-osu"
+    - title: Twitter
+      icon: x-twitter
+      url: "https://x.com/Archie_1997"
+
 plugins:
   - jekyll-feed
 
