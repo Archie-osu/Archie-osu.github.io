@@ -41,29 +41,29 @@ default:
     KeBugCheck(KERNEL_SECURITY_CHECK_FAILURE);
 }
 ```
-For the purposes of this article, we'll focus on what happens when the value is set to ``1``. At the beginning of the ``nt!KeQueryPerformanceCounter`` function, we can see the following snippet:
+For the purposes of this article, we'll focus on what happens when the value is set to ``1``. At the beginning of the ``nt!KeQueryPerformanceCounter`` function, we can see the following snippet.
+
+Edit: Thanks to [@sixtyvividtails](https://x.com/sixtyvividtails) on X, it has come to my attention that ``HalpPerformanceCounter`` is actually a ``hal!_REGISTERED_TIMER`` structure.
 ```cpp
-UINT32 value_1 = *reinterpret_cast<UINT32*>(HalpPerformanceCounter + 0xE4);
-UINT32 value_2 = *reinterpret_cast<UINT32*>(HalpPerformanceCounter + 0xDC);
 LARGE_INTEGER result = { .QuadPart = 0 };
 
-// This seems to always be true
-if (value_1 == 5)
+// This seems to always be true - the TimerProcessor constant (= 5) comes from hal!_KNOWN_TIMER_TYPE.
+if (HalpPerformanceCounter.KnownType == TimerProcessor)
 {
     PVOID internal_data = HalpTimerGetInternalData(HalpPerformanceCounter);
     if (HalpTimerReferencePage)
     {
-        result = HalpPerformanceCounter->HalpQueryCounter(internal_data);
+        result = HalpPerformanceCounter.FunctionTable.QueryCounter(internal_data);
     }
     else
     {
         // ...
-        result = HalpPerformanceCounter->HalpQueryCounter(internal_data);
+        result = HalpPerformanceCounter.FunctionTable.QueryCounter(internal_data);
         // ...
     }
 }
 ```
-Simply swapping the pointer to ``HalpQueryCounter`` is enough to get us a hook. There is just one problem - ``nt!KeQueryPerformanceCounter`` is a function that is called **very** often. It's also impossible to set a breakpoint inside, as any connected kernel debugger will hang upon the breakpoint being hit.
+Simply swapping the pointer to ``QueryCounter`` is enough to get us a hook. There is just one problem - ``nt!KeQueryPerformanceCounter`` is a function that is called **very** often. It's also impossible to set a breakpoint inside, as any connected kernel debugger will hang upon the breakpoint being hit.
 
 To prevent false positives (and get our debugger to work again), we need to figure out if calls made to our hook come from ETW. In the tested version of Windows 11 24H2, there is a pointer to the logger context in the ``r15`` register if the call comes from ETW. In other versions of Windows (mainly Windows 10), one may have to resort to scanning the stack for pointers to the logger context.
 
