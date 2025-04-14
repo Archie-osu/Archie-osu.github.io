@@ -52,10 +52,19 @@ if (idle_states->IdlePreselect)
 ```
 Perfect. All that's left is to swap the pointer inside any ``_KPRCB`` we desire, and we're off to the races. 
 
+## Usage
+While this hook is a niche one for sure, it has several glaring advantages to simply creating a system thread inside the kernel. Due to the process and thread not being valid kernel objects, attempting to access them via traditional APIs like ``PsLookupProcessByProcessId``/``PsLookupThreadByThreadId`` will fail with ``STATUS_INVALID_CID``. 
+
+Manual lookup via ``PspCidTable`` will also fail, as there exist no entries for the any idle process / thread. As [further research done by @sixtyvividtails](https://x.com/sixtyvividtails/status/1911660271233270035) shows, **only the boot processor's thread is allocated from the kernel .data section**, with the rest being regular ``ETHREAD``s. API functions are therefore likely to succeed on them. 
+
+Furthermore, this hook requires no system calls to fire, as it is called repeatedly when the thread has nothing better to do. This is a double-edged sword, as if the thread is pinned to 100% usage, the hook could theoretically never be called. That said, this has never occurred during my testing, even though the VM has only one CPU core allocated to it. 
+
+After posting this article, it has [come to my attention](https://x.com/sixtyvividtails/status/1911550751643402635) that the [NtPowerInformation](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-ntpowerinformation) syscall may offer a more version-agnostic way of setting the handler. 
+
 ## Detection
-The detection is actually not as simple as one might think. Due to the process and thread not being valid kernel objects, traditional APIs like ``ObOpenObjectByPointer`` and ``PsLookupThreadByThreadId`` will fail. Manual lookup via ``PspCidTable`` will also fail, as neither the thread nor the process actually have valid entries. 
 
 The most obvious detection method is simply checking the pointer inside the ``_KPRCB``. To do so, the anti-cheat would need to run on the same logical processor, or use undocumented functions like ``KeQueryPrcbAddress``. Another detection may come from an interrupt coming from an external source - [NMIs](https://en.wikipedia.org/wiki/Non-maskable_interrupt) from [EasyAntiCheat](https://easy.ac/en-US) come to mind. I won't confirm nor deny that queuing APCs on the thread may or may not be effective, as that remains to be tested.
 
 ## Proof of concept
 The proof of concept code, tested on Windows 11 24H2 (26100.3775), is available [here](https://github.com/Archie-osu/PowerHook). Keep in mind that ``_KPRCB`` offsets change often, so double-check everything is correct before running the driver!
+

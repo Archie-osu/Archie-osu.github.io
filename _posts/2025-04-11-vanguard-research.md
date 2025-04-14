@@ -95,7 +95,7 @@ The checks ended up tripping twice, and the program produced the following outpu
 [!] HalPrivateDispatchTable+0x248 = 0xFFFFF80A3D3F4A10 (vgk.sys+0x14A10)
 [!] HalPrivateDispatchTable+0x400 = 0xFFFFF80A3D44C090 (vgk.sys+0x6C090)
 ```
-The second result was expected - that's the ``HalClearLastBranchRecordStack`` hook covered earlier. It was the first line that caught my attention. At offset ``0x248``, there is a function pointer called ``HalCollectPmcCounters``. Looking up the variable's name led me to a [well-known article](https://revers.engineering/fun-with-pg-compliant-hook/) by [Nick Peterson](https://x.com/nickeverdox), an anti-cheat analyst working at Riot Games, and the original creator of [InfinityHook](https://github.com/everdox/InfinityHook).
+The second result was expected - that's the ``HalClearLastBranchRecordStack`` hook covered earlier. It was the first line that caught my attention. At offset ``0x248``, there is a function pointer called ``HalCollectPmcCounters``. Looking up the variable's name led me to a [well-known article](https://revers.engineering/fun-with-pg-compliant-hook/) by [Aidan Khoury](https://x.com/aidankhoury) and [Daax](https://x.com/daaximus).
 
 The article details a PatchGuard-compliant system call hook - *using this exact function*. 
 
@@ -106,7 +106,7 @@ Originally, this article would've wrapped up right about now. But as I was prepa
 
 Motivated to bring something new to the table, I decided to reexamine some of Vanguard's hooks. To my knowledge, the information below has **never been shared in public**. I know this is a very bold claim, but over the entire course of my research, I have not seen anyone give a full list of hooked system calls.
 
-As discussed in the previous section, Vanguard hooks system calls using a very similar method to the one described in [Nick Peterson's article](https://revers.engineering/fun-with-pg-compliant-hook/). This can be confirmed by looking at Vanguard's replacement for ``HalCollectPmcCounters``:
+As discussed in the previous section, Vanguard hooks system calls using a very similar method to the one described in [Aidan Khoury's and Daax's article](https://revers.engineering/fun-with-pg-compliant-hook/). This can be confirmed by looking at Vanguard's replacement for ``HalCollectPmcCounters``:
 
 ```cpp
 // Argument names taken from https://revers.engineering/fun-with-pg-compliant-hook/
@@ -254,8 +254,7 @@ NTSTATUS vgk::NtSuspendProcessHook(
             nullptr
         );
 
-        // Yes. The first check is unnecessary. No. I don't know why they do it.
-        // It's not IDA being broken either - there's actual code backing this check up.
+        // First check seems unnecessary.
         // Maybe a by-product of their obfuscation?
         if (*PsProcessType != *PsProcessType || !NT_SUCCESS(result))
         {
@@ -290,4 +289,4 @@ However, I was unable to reproduce it - my test driver could read VALORANT's mem
 
 To wrap this up, I think it's important to note that Vanguard's protections go beyond what I've detailed above. I may revisit this topic in the future, but given the current time constraints, this is all I've got for now.
 
-As always, I applaud you, the reader, for making it this far. **Stay tuned for next time, when I'll explore some ways of detecting [Voyager](https://git.back.engineering/_xeroxz/voyager)-like Hyper-V bootkits.**
+As always, I applaud you, the reader, for making it this far. **Stay tuned for next time.**
